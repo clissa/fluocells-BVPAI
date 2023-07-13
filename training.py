@@ -1,7 +1,8 @@
 """
-This scripts perform a basic training pipeline. It takes 3 CLI arguments:
+This scripts perform a basic training pipeline. It takes 4 CLI arguments:
 
- - dataset (greeen, yellow or red): dataset to train on
+ - dataset (yellow): dataset to train on #TODO: add public datasets option?
+ - loss (Dice, BCE or FT): loss function
  - seed: initialization for data split and network weights/training cycle
  - gpu_id: id of the gpu to use for training
 
@@ -23,6 +24,7 @@ import os
 import json
 from random import randint
 from fastai.vision.all import *
+from fastai.losses import FocalLossFlat
 from fastai.torch_basics import set_seed
 from fluocells.config import (
     REPO_PATH,
@@ -43,8 +45,17 @@ parser = argparse.ArgumentParser(description="Run a basic training pipeline")
 parser.add_argument(
     "dataset",
     type=str,
-    choices=["green", "yellow", "red"],
-    help="Dataset to train on: green, yellow, or red",
+    choices=["yellow"],
+    help="Dataset to train on: yellow",
+)
+
+# Add the loss argument
+parser.add_argument(
+    "--loss",
+    type=str,
+    choices=["Dice", "BCE", "FT"],
+    default="Dice",
+    help="Loss function. Either Dice, (Weighted) Binary Cross Entropy, or Focal Tversky.  (default: 'Dice')",
 )
 
 # Add the seed argument
@@ -65,7 +76,6 @@ args = parser.parse_args()
 # torch.set_printoptions(precision=10)
 # os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu_id)
 
-# TODO: add as CLI arguments
 DATASET = args.dataset
 SEED = args.seed
 
@@ -76,7 +86,7 @@ if SEED is None:
 VAL_PCT = 0.2
 
 # data and augmentation params
-EPOCHS_SCRATCH = 100
+EPOCHS_SCRATCH = 200
 # EPOCHS_FINETUNE = 50
 BS = 32
 CROP_SIZE = 512
@@ -90,11 +100,23 @@ N_IN, N_OUT = 16, 2
 PRETRAINED = False
 
 # optimizer params
-# W_CELL, W_BKGD = 1, 1
-LOSS_FUNC, LOSS_NAME = (
-    DiceLoss(axis=1, smooth=1e-06, reduction="mean", square_in_union=False),
-    "Dice",
-)
+if args.loss == "Dice":
+    LOSS_FUNC, LOSS_NAME = (
+        DiceLoss(axis=1, smooth=1e-06, reduction="mean", square_in_union=False),
+        "Dice",
+    )
+elif args.loss == "BCE":
+    # optimizer params
+    W_CELL, W_BKGD = 200, 1
+    LOSS_FUNC = CrossEntropyLossFlat(axis=1, weight=torch.Tensor([W_BKGD, W_CELL]))
+    LOSS_NAME = f"BCE_wcell={W_CELL}"
+elif args.loss == "FV":
+    GAMMA = 2.0
+    LOSS_FUNC, LOSS_NAME = (
+        FocalLossFlat(axis=1, gamma=GAMMA, weight=None, reduction="mean"),
+        f"Focal_gamma={GAMMA}",
+    )
+
 LR = None
 OPT, OPT_NAME = partial(Adam, lr=LR), "Adam"
 MONIT_SCORE, MIN_DELTA, PATIENCE_ES = "dice", 0.005, 20  # early stopping
@@ -130,11 +152,15 @@ hyperparameter_defaults = dict(
 
 cfg = namedtuple("Config", hyperparameter_defaults.keys())(**hyperparameter_defaults)
 
-EXP_NAME = f"{DATASET}_{SEED}"
+EXP_NAME = f"{DATASET}_{SEED}_{LOSS_NAME}"
 LOG_PATH = REPO_PATH / "logs" / EXP_NAME
 LOG_PATH.mkdir(exist_ok=True, parents=True)
 
 model_path = f"{MODELS_PATH / EXP_NAME}"
+
+print(f"Running experiment: {EXP_NAME}")
+print(f"Log path set to: {LOG_PATH}")
+print(f"Model weights will be stored in: {model_path}")
 
 
 def label_func(p):
