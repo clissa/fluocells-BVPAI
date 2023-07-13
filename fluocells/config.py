@@ -34,7 +34,8 @@ TRAINVAL_TEST_SEED = 10
 # data
 RAW_DATA_PATH = REPO_PATH / "raw_data"
 
-DATA_PATH = REPO_PATH / f"dataset_{METADATA['current_version']}"
+# EDIT HERE TO ROOT PATH OF THE DATA FOLDER
+DATA_PATH = REPO_PATH.parent / "fluocells-scientific-data" / f"dataset_{METADATA['current_version']}"
 
 DATA_PATH_r = DATA_PATH / "red"
 DATA_PATH_y = DATA_PATH / "yellow"
