@@ -4,7 +4,7 @@ evaluate_all.py
 
 # data folders
 raw_data*
-dataset*
+*dataset*
 
 # output
 figures/
