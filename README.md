@@ -1,2 +1,2 @@
-# fluocells-scientific-data
-Repository with code for Fluocells Neuronal Cells v2 dataset.
+# fluocells-BVPAI
+Repository with code for paper submitted to ICIAP 2023 workshop _Beyon Vision: Physics meets AI_.
