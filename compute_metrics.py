@@ -61,6 +61,8 @@ def main(args):
     results_df = results_df.drop(("segmentation", "accuracy"), axis=1, errors="ignore")
     results_df = results_df.drop(("detection", "accuracy"), axis=1, errors="ignore")
     results_df.to_csv(RESULTS_PATH / "all_metrics.csv")
+
+    print(f"Logging results table to: {RESULTS_PATH}")
     with open(RESULTS_PATH / "all_metrics.tex", "w") as f:
         f.write(results_df.style.format("{:.2f}").to_latex())
 
