@@ -55,7 +55,15 @@ parser.add_argument(
     type=str,
     choices=["Dice", "BCE", "FT"],
     default="Dice",
-    help="Loss function. Either Dice, (Weighted) Binary Cross Entropy, or Focal Tversky.  (default: 'Dice')",
+    help="Loss function. Either Dice, (Weighted) Binary Cross Entropy, or Focal Tversky  (default: 'Dice')",
+)
+
+# Add the W_CELL argument
+parser.add_argument(
+    "--w_cell",
+    type=int,
+    default=200,
+    help="Weight for cell class in case loss is BCE (default: 200)",
 )
 
 # Add the seed argument
@@ -107,10 +115,10 @@ if args.loss == "Dice":
     )
 elif args.loss == "BCE":
     # optimizer params
-    W_CELL, W_BKGD = 200, 1
+    W_CELL, W_BKGD = args.w_cell, 1
     LOSS_FUNC = CrossEntropyLossFlat(axis=1, weight=torch.Tensor([W_BKGD, W_CELL]))
     LOSS_NAME = f"BCE_wcell={W_CELL}"
-elif args.loss == "FV":
+elif args.loss == "FT":
     GAMMA = 2.0
     LOSS_FUNC, LOSS_NAME = (
         FocalLossFlat(axis=1, gamma=GAMMA, weight=None, reduction="mean"),
