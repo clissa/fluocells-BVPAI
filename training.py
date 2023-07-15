@@ -2,7 +2,7 @@
 This scripts perform a basic training pipeline. It takes 4 CLI arguments:
 
  - dataset (yellow): dataset to train on #TODO: add public datasets option?
- - loss (Dice, BCE or FT): loss function
+ - loss (Dice, BCE, Focal or Combined): loss function
  - seed: initialization for data split and network weights/training cycle
  - gpu_id: id of the gpu to use for training
 
@@ -53,9 +53,9 @@ parser.add_argument(
 parser.add_argument(
     "--loss",
     type=str,
-    choices=["Dice", "BCE", "FT", "Combined"],
+    choices=["Dice", "BCE", "Focal", "Combined"],
     default="Dice",
-    help="Loss function. Either Dice, (Weighted) Binary Cross Entropy, Focal Tversky or Combined  (default: 'Dice')",
+    help="Loss function. Either Dice, (Weighted) Binary Cross Entropy, Focal or Combined  (default: 'Dice')",
 )
 
 # Add the W_CELL argument
@@ -152,7 +152,7 @@ elif args.loss == "BCE":
     W_CELL, W_BKGD = args.w_cell, 1
     LOSS_FUNC = CrossEntropyLossFlat(axis=1, weight=torch.Tensor([W_BKGD, W_CELL]))
     LOSS_NAME = f"BCE_wcell={W_CELL}"
-elif args.loss == "FT":
+elif args.loss == "Focal":
     GAMMA = 2.0
     LOSS_FUNC = FocalLossFlat(axis=1, gamma=GAMMA, weight=None, reduction="mean")
     LOSS_NAME = (f"Focal_gamma={GAMMA}",)
