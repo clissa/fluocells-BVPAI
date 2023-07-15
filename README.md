@@ -136,7 +136,7 @@ In the evaluation phase, some hyperparameters affect the results. The folllowing
     - binarization threshold: 0.875
     - smooth_disk: 3
     - max_hole: 50
-    - min_size: 200
+    - min_size: 200 # roughly equivalent to minimum size of labelled objects (expressed in pixels)
     - max_dist: 30
     - fp: 40
 
