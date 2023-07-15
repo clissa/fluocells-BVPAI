@@ -12,6 +12,9 @@ logs/
 models/
 results/
 
+# extras
+dataOps/ 
+
 ### Template
 
 # Byte-compiled / optimized / DLL files
