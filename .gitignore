@@ -14,6 +14,7 @@ results/
 
 # extras
 dataOps/ 
+run_experiments.py
 
 ### Template
 
