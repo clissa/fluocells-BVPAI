@@ -159,8 +159,8 @@ elif args.loss == "FT":
 
 elif args.loss == "Combined":
     # WEIGHTS = (0.3, 0.3, 0.4) # balanced approach
-    WEIGHTS = (0.2, 0.5, 0.3)  # prioritize overcrowing
-    # WEIGHTS = (0.5, 0.2, 0.5) # CellViT
+    # WEIGHTS = (0.2, 0.5, 0.3)  # prioritize overcrowing
+    WEIGHTS = (0.5, 0.2, 0.5)  # CellViT
     LOSS_FUNC = CombinedLoss(
         axis=1,
         w_bce=WEIGHTS[0],
