@@ -53,9 +53,9 @@ parser.add_argument(
 parser.add_argument(
     "--loss",
     type=str,
-    choices=["Dice", "BCE", "FT"],
+    choices=["Dice", "BCE", "FT", "Combined"],
     default="Dice",
-    help="Loss function. Either Dice, (Weighted) Binary Cross Entropy, or Focal Tversky  (default: 'Dice')",
+    help="Loss function. Either Dice, (Weighted) Binary Cross Entropy, Focal Tversky or Combined  (default: 'Dice')",
 )
 
 # Add the W_CELL argument
@@ -84,6 +84,42 @@ args = parser.parse_args()
 # torch.set_printoptions(precision=10)
 # os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu_id)
 
+
+def label_func(p):
+    return Path(str(p).replace("images", "ground_truths/masks"))
+
+
+class CombinedLoss:
+    """Combined loss function. This include three terms that focus on complementary aspects:
+    - BCE: better handles noisy labels
+    - Dice: help ensuring better performance on object boundaries
+    - Focal: gives more weights to challenging examples, thus mitigating class inbalance
+    """
+
+    def __init__(
+        self, axis=1, w_bce=0.3, w_dice=0.3, w_focal=0.4, smooth=1.0, gamma=2.0
+    ):
+        store_attr()
+        self.name = "CombinedLoss"
+        # self.bce = BCEWithLogitsLossFlat(axis=axis)
+        self.bce_loss = CrossEntropyLossFlat(axis=axis)
+        self.dice_loss = DiceLoss(axis, smooth)
+        self.focal_loss = FocalLossFlat(axis=axis, gamma=gamma)
+
+    def __call__(self, preds, targets):
+        return (
+            self.w_bce * self.bce_loss(preds, targets)
+            + self.w_dice * self.dice_loss(preds, targets)
+            + self.w_focal * self.focal_loss(preds, targets)
+        )
+
+    def decodes(self, x):
+        return x.argmax(dim=self.axis)
+
+    def activation(self, x):
+        return F.softmax(x, dim=self.axis)
+
+
 DATASET = args.dataset
 SEED = args.seed
 
@@ -109,10 +145,8 @@ PRETRAINED = False
 
 # optimizer params
 if args.loss == "Dice":
-    LOSS_FUNC, LOSS_NAME = (
-        DiceLoss(axis=1, smooth=1e-06, reduction="mean", square_in_union=False),
-        "Dice",
-    )
+    LOSS_FUNC = DiceLoss(axis=1, smooth=1e-06, reduction="mean", square_in_union=False)
+    LOSS_NAME = "Dice"
 elif args.loss == "BCE":
     # optimizer params
     W_CELL, W_BKGD = args.w_cell, 1
@@ -120,10 +154,20 @@ elif args.loss == "BCE":
     LOSS_NAME = f"BCE_wcell={W_CELL}"
 elif args.loss == "FT":
     GAMMA = 2.0
-    LOSS_FUNC, LOSS_NAME = (
-        FocalLossFlat(axis=1, gamma=GAMMA, weight=None, reduction="mean"),
-        f"Focal_gamma={GAMMA}",
+    LOSS_FUNC = FocalLossFlat(axis=1, gamma=GAMMA, weight=None, reduction="mean")
+    LOSS_NAME = (f"Focal_gamma={GAMMA}",)
+
+elif args.loss == "Combined":
+    # WEIGHTS = (0.3, 0.3, 0.4) # balanced approach
+    WEIGHTS = (0.2, 0.5, 0.3)  # prioritize overcrowing
+    # WEIGHTS = (0.5, 0.2, 0.5) # CellViT
+    LOSS_FUNC = CombinedLoss(
+        axis=1,
+        w_bce=WEIGHTS[0],
+        w_dice=WEIGHTS[1],
+        w_focal=WEIGHTS[2],
     )
+    LOSS_NAME = f"Combined_weights={WEIGHTS}"
 
 LR = None
 OPT, OPT_NAME = partial(Adam, lr=LR), "Adam"
@@ -169,10 +213,6 @@ model_path = f"{MODELS_PATH / EXP_NAME}"
 print(f"Running experiment: {EXP_NAME}")
 print(f"Log path set to: {LOG_PATH}")
 print(f"Model weights will be stored in: {model_path}")
-
-
-def label_func(p):
-    return Path(str(p).replace("images", "ground_truths/masks"))
 
 
 def main(dataset, gpu_id, cfg):
