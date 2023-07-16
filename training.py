@@ -2,7 +2,7 @@
 This scripts perform a basic training pipeline. It takes 4 CLI arguments:
 
  - dataset (yellow): dataset to train on #TODO: add public datasets option?
- - loss (Dice, BCE, Focal or Combined): loss function
+ - loss (Dice, BCE, Focal, FT, Combined or CombinedFT): loss function
  - seed: initialization for data split and network weights/training cycle
  - gpu_id: id of the gpu to use for training
 
@@ -36,6 +36,7 @@ from fluocells.config import (
     MODELS_PATH,
 )
 from fluocells.models import cResUnet, c_resunet
+from fluocells.models._losses import FocalTverskyLoss, CombinedLoss, CombinedFTLoss
 
 import argparse
 
@@ -53,16 +54,16 @@ parser.add_argument(
 parser.add_argument(
     "--loss",
     type=str,
-    choices=["Dice", "BCE", "Focal", "Combined"],
+    choices=["Dice", "BCE", "Focal", "FT", "Combined", "CombinedFT"],
     default="Dice",
-    help="Loss function. Either Dice, (Weighted) Binary Cross Entropy, Focal or Combined  (default: 'Dice')",
+    help="Loss function. Either Dice, (Weighted) Binary Cross Entropy, Focal, Focal Tversky, Combined or CombinedFT  (default: 'Dice')",
 )
 
 # Add the W_CELL argument
 parser.add_argument(
     "--w_cell",
     type=int,
-    default=200,
+    default=1,
     help="Weight for cell class in case loss is BCE (default: 200)",
 )
 
@@ -87,37 +88,6 @@ args = parser.parse_args()
 
 def label_func(p):
     return Path(str(p).replace("images", "ground_truths/masks"))
-
-
-class CombinedLoss:
-    """Combined loss function. This include three terms that focus on complementary aspects:
-    - BCE: better handles noisy labels
-    - Dice: help ensuring better performance on object boundaries
-    - Focal: gives more weights to challenging examples, thus mitigating class inbalance
-    """
-
-    def __init__(
-        self, axis=1, w_bce=0.3, w_dice=0.3, w_focal=0.4, smooth=1.0, gamma=2.0
-    ):
-        store_attr()
-        self.name = "CombinedLoss"
-        # self.bce = BCEWithLogitsLossFlat(axis=axis)
-        self.bce_loss = CrossEntropyLossFlat(axis=axis)
-        self.dice_loss = DiceLoss(axis, smooth)
-        self.focal_loss = FocalLossFlat(axis=axis, gamma=gamma)
-
-    def __call__(self, preds, targets):
-        return (
-            self.w_bce * self.bce_loss(preds, targets)
-            + self.w_dice * self.dice_loss(preds, targets)
-            + self.w_focal * self.focal_loss(preds, targets)
-        )
-
-    def decodes(self, x):
-        return x.argmax(dim=self.axis)
-
-    def activation(self, x):
-        return F.softmax(x, dim=self.axis)
 
 
 DATASET = args.dataset
@@ -155,8 +125,11 @@ elif args.loss == "BCE":
 elif args.loss == "Focal":
     GAMMA = 2.0
     LOSS_FUNC = FocalLossFlat(axis=1, gamma=GAMMA, weight=None, reduction="mean")
-    LOSS_NAME = (f"Focal_gamma={GAMMA}",)
-
+    LOSS_NAME = f"Focal_gamma={GAMMA}"
+elif args.loss == "FT":
+    GAMMA = 2.0
+    LOSS_FUNC = FocalTverskyLoss()
+    LOSS_NAME = f"FT_default"
 elif args.loss == "Combined":
     # WEIGHTS = (0.3, 0.3, 0.4) # balanced approach
     # WEIGHTS = (0.2, 0.5, 0.3)  # prioritize overcrowing
@@ -168,6 +141,18 @@ elif args.loss == "Combined":
         w_focal=WEIGHTS[2],
     )
     LOSS_NAME = f"Combined_weights={WEIGHTS}"
+elif args.loss == "CombinedFT":
+    # WEIGHTS = (0.3, 0.3, 0.4) # balanced approach
+    # WEIGHTS = (0.2, 0.5, 0.3)  # prioritize overcrowing
+    WEIGHTS = (0.5, 0.2, 0.5)  # CellViT
+    LOSS_FUNC = CombinedFTLoss(
+        axis=1,
+        w_bce=WEIGHTS[0],
+        w_dice=WEIGHTS[1],
+        w_focal=WEIGHTS[2],
+    )
+    LOSS_NAME = f"CombinedFT_weights={WEIGHTS}"
+
 
 LR = None
 OPT, OPT_NAME = partial(Adam, lr=LR), "Adam"
