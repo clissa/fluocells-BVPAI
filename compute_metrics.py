@@ -20,8 +20,23 @@ parser.add_argument(
     "-e",
     "--experiments",
     nargs="+",
-    default=["green_12345", "red_98765", "yellow_54321"],
+    default=[
+        "yellow_0_FT_default",
+        "yellow_5_FT_default",
+        "yellow_25_FT_default",
+        "yellow_47_FT_default",
+        "yellow_79_FT_default",
+    ],
     help='List of experiments to assess. Default: ["green_12345", "red_98765", "yellow_54321"]',
+)
+
+# Add the arguments
+parser.add_argument(
+    "--new_data",
+    dest="new_data",
+    action="store_true",
+    default=False,
+    help="Flag to indicate a new dataset, different from FNC v2 yellow used for training.",
 )
 
 
@@ -30,7 +45,12 @@ def main(args):
 
     # experiment_paths = [p for p in RESULTS_PATH.iterdir() if p.is_dir()]
     # experiment_paths.sort()
-    experiment_paths = [RESULTS_PATH / exp_name for exp_name in args.experiments]
+    if args.experiments[0] == "all":
+        experiment_paths = [
+            p for p in RESULTS_PATH.iterdir() if (p / "metrics.csv").exists()
+        ]
+    else:
+        experiment_paths = [RESULTS_PATH / exp_name for exp_name in args.experiments]
 
     columns_detection = pd.MultiIndex.from_product(
         [
@@ -50,7 +70,10 @@ def main(args):
     results_df = pd.DataFrame(columns=all_columns)
 
     for experiment_dir in experiment_paths:
-        metrics_df = pd.read_csv(experiment_dir / "metrics.csv")
+        if args.new_data:
+            metrics_df = pd.read_csv(experiment_dir / "generalization_metrics.csv")
+        else:
+            metrics_df = pd.read_csv(experiment_dir / "metrics.csv")
         iou_metrics = all_metrics(metrics_df, eval_type="iou")
         prox_metrics = all_metrics(metrics_df, eval_type="prox")
         results_df.loc[f"{experiment_dir.name}"] = iou_metrics[:4] + prox_metrics
@@ -62,8 +85,13 @@ def main(args):
     results_df = results_df.drop(("detection", "accuracy"), axis=1, errors="ignore")
     results_df.to_csv(RESULTS_PATH / "all_metrics.csv")
 
-    print(f"Logging results table to: {RESULTS_PATH}")
-    with open(RESULTS_PATH / "all_metrics.tex", "w") as f:
+    outpath = (
+        RESULTS_PATH / args.experiments[0].split("/")[0]
+        if args.new_data
+        else RESULTS_PATH
+    )
+    print(f"Logging results table to: {outpath}")
+    with open(outpath / "all_metrics.tex", "w") as f:
         f.write(results_df.style.format("{:.2f}").to_latex())
 
 
