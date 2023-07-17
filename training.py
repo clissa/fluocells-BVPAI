@@ -59,6 +59,19 @@ parser.add_argument(
     help="Loss function. Either Dice, (Weighted) Binary Cross Entropy, Focal, Focal Tversky, Combined or CombinedFT  (default: 'Dice')",
 )
 
+# Add the loss weights
+parser.add_argument(
+    "--loss_weights",
+    type=str,
+    choices=["balanced", "overcrowd", "cellvit"],
+    default="cellvit",
+    help="""Configuration of weight for BCE, Dice and Focal/FocalTversky loss terms (used only with `Combined*` lossed). Options:
+    - balanced:
+    - overcrowd:
+    - cellvit:
+    (default: 'cellvit').""",
+)
+
 # Add the W_CELL argument
 parser.add_argument(
     "--w_cell",
@@ -131,9 +144,12 @@ elif args.loss == "FT":
     LOSS_FUNC = FocalTverskyLoss()
     LOSS_NAME = f"FT_default"
 elif args.loss == "Combined":
-    # WEIGHTS = (0.3, 0.3, 0.4) # balanced approach
-    # WEIGHTS = (0.2, 0.5, 0.3)  # prioritize overcrowing
-    WEIGHTS = (0.5, 0.2, 0.5)  # CellViT
+    weights_config = {
+        "balanced": (0.3, 0.3, 0.4),
+        "overcrowd": (0.2, 0.5, 0.3),
+        "cellvit": (0.5, 0.2, 0.5),
+    }
+    WEIGHTS = weights_config[args.loss_weights]
     LOSS_FUNC = CombinedLoss(
         axis=1,
         w_bce=WEIGHTS[0],
@@ -142,9 +158,12 @@ elif args.loss == "Combined":
     )
     LOSS_NAME = f"Combined_weights={WEIGHTS}"
 elif args.loss == "CombinedFT":
-    # WEIGHTS = (0.3, 0.3, 0.4) # balanced approach
-    # WEIGHTS = (0.2, 0.5, 0.3)  # prioritize overcrowing
-    WEIGHTS = (0.5, 0.2, 0.5)  # CellViT
+    weights_config = {
+        "balanced": (0.3, 0.3, 0.4),
+        "overcrowd": (0.2, 0.5, 0.3),
+        "cellvit": (0.5, 0.2, 0.5),
+    }
+    WEIGHTS = weights_config[args.loss_weights]
     LOSS_FUNC = CombinedFTLoss(
         axis=1,
         w_bce=WEIGHTS[0],
@@ -239,6 +258,7 @@ def main(dataset, gpu_id, cfg):
         item_tfms=RandomCrop(cfg.crop_size),
         batch_tfms=tfms,
         device="cuda",
+        num_workers=10,
     )
 
     # initialize model
