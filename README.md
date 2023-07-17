@@ -141,6 +141,6 @@ In the evaluation phase, some hyperparameters affect the results. The folllowing
     - fp: 40
 
 - evaluation
-    - IoU threshold: 0.5
+    - IoU threshold: 0.4
     - proximity threshold: 40 pixels (corresponding to X $\mu m$, average cell diameter)
 
