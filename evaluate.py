@@ -204,7 +204,7 @@ def main(postproc_cfg):
         model_dir=model_path,
     )
 
-    print(f"Loading pesi da: {model_path}")
+    print(f"Loading weights: {model_path}")
     # load training pipeline instead
     learn.load(model_path / "model")  # model.pth
     # freeze to eval mode
