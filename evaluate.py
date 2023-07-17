@@ -132,6 +132,10 @@ parser.add_argument(
 )
 
 
+def label_func(p):
+    return Path(str(p).replace("images", "ground_truths/masks"))
+
+
 def main(postproc_cfg):
     BS = 1
     DATASET = postproc_cfg.dataset
@@ -164,9 +168,6 @@ def main(postproc_cfg):
     # splitter
     splitter = RandomSplitter(valid_pct=VAL_PCT)
 
-    def label_func(p):
-        return Path(str(p).replace("images", "ground_truths/masks"))
-
     # dataloader
     dls = SegmentationDataLoaders.from_label_func(
         DATA_PATH,
@@ -183,7 +184,7 @@ def main(postproc_cfg):
     test_fnames = [fn for fn in test_path.iterdir()]
 
     print(f"Number of test images: {len(test_fnames)}")
-    test_dl = dls.test_dl(test_fnames, with_labels=True)
+    test_dl = dls.test_dl(test_fnames, with_labels=True, shuffle=False)
 
     # learner
     arch = "c-ResUnet"
@@ -248,7 +249,6 @@ def main(postproc_cfg):
             mask_label, pred_mask_label, "proximity", postproc_cfg.prox_thresh
         )
         metrics_df.loc[image_name, "TP_prox FP_prox FN_prox".split(" ")] = TP, FP, FN
-
     return metrics_df
 
 
