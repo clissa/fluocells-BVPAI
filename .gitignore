@@ -2,6 +2,7 @@
 
 evaluate_all.py
 inference_all.py
+models.zip
 
 # data folders
 raw_data*
