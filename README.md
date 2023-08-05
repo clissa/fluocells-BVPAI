@@ -3,10 +3,10 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 <img src="https://img.shields.io/badge/PyTorch-EE4C2C?style=flat-square&logo=Pytorch&logoColor=white"/></a>
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Visitors](https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Fgithub.com%2Fclissa%2Ffluocells-BVPAI&countColor=%23263759)](https://visitorbadge.io/status?path=https%3A%2F%2Fgithub.com%2Fclissa%2Ffluocells-BVPAI)
+![Visitors](https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Fgithub.com%2Fclissa%2Ffluocells-BVPAI&countColor=%23263759)
 
 # fluocells-BVPAI
-Repository with code for paper submitted to ICIAP 2023 workshop [_Beyon Vision: Physics meets AI_](https://physicsmeetsai.github.io/beyond-vision/).
+Repository with code for paper accepted to ICIAP 2023 workshop [_Beyon Vision: Physics meets AI_](https://physicsmeetsai.github.io/beyond-vision/).
 
 ## Quick Start
 
