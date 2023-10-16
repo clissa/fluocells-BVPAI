@@ -21,10 +21,10 @@ REPO_PATH = Path(fluo.__path__[0]).parent
 
 # metadata
 METADATA = dict(
-    dataset_name = "Fluorescent Neuronal Cells dataset",
-    data_url = "<CHECK-AMS-ACTA-DOI>",
-    contributors = ["Luca Clissa", "Roberto Morelli", "et al."],
-    current_version = "v1_9",
+    dataset_name="Fluorescent Neuronal Cells dataset",
+    data_url="https://amsacta.unibo.it/id/eprint/7347 ",
+    contributors=["Luca Clissa", "Roberto Morelli", "Antonio Macaluso", "et al."],
+    current_version="v2",
 )
 
 # reproducibility
@@ -35,7 +35,11 @@ TRAINVAL_TEST_SEED = 10
 RAW_DATA_PATH = REPO_PATH / "raw_data"
 
 # EDIT HERE TO ROOT PATH OF THE DATA FOLDER
-DATA_PATH = REPO_PATH.parent / "fluocells-scientific-data" / f"dataset_{METADATA['current_version']}"
+DATA_PATH = (
+    REPO_PATH.parent
+    / "fluocells-scientific-data"
+    / f"dataset_{METADATA['current_version']}"
+)
 
 DATA_PATH_r = DATA_PATH / "red"
 DATA_PATH_y = DATA_PATH / "yellow"
